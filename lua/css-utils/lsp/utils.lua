@@ -6,9 +6,11 @@ local logger = require("css-utils.logger")
 local attach_custom_handler = function(client, handler_name, custom_handler)
     local client_id = client.id
     logger.trace(
-        "attach_custom_handler for client=%d and handler=%s",
-        client_id,
-        handler_name
+        string.format(
+            "attach_custom_handler for client=%d and handler=%s",
+            client_id,
+            handler_name
+        )
     )
     local original_handler = vim.lsp.handlers[handler_name]
     -- Attaching to client.handlers[handler_name] also affects all clients
