@@ -93,10 +93,11 @@ end
 local CssParser = {}
 setmetatable(CssParser, { __index = Parser })
 
+---@param bufnr integer
 ---@return CssParser
-function CssParser:new()
+function CssParser:new(bufnr)
     logger.trace("CssParser:new()")
-    local instance = Parser:new()
+    local instance = Parser:new(bufnr)
     setmetatable(instance, { __index = CssParser })
     return instance
 end
@@ -104,7 +105,7 @@ end
 ---@param cb fun(selectors: table<string, CssSelectorInfo[]>): nil
 function CssParser:parse(cb)
     logger.trace("CssParser:parse")
-    local bufnr = self.buf
+    local bufnr = self.bufnr
     local selectors = {}
     local treesitter_parser = vim.treesitter.get_parser(bufnr, "css")
     local root = treesitter_parser:trees()[1]:root()
