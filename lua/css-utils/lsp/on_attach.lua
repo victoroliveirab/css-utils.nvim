@@ -10,30 +10,44 @@ local on_attach = function(params)
     if lsp_client.name ~= "html" then
         return
     end
-    lsp_utils.attach_custom_handler(
-        lsp_client,
-        "textDocument/definition",
-        html_handlers.go_to_definition
-    )
-    local css_parser = CssParser:new()
-    local html_parser = HtmlParser:new()
-    html_parser:set_buffer(params.buf)
+    if not state.lsp.attached_handlers_map[lsp_client_id] then
+        state.lsp.attached_handlers_map[lsp_client_id] = {}
+    end
+    local definition_handler_name = "textDocument/definition"
+    local handlers_attached_to_client =
+        state.lsp.attached_handlers_map[lsp_client_id]
+    if
+        not vim.tbl_contains(
+            handlers_attached_to_client,
+            definition_handler_name
+        )
+    then
+        lsp_utils.attach_custom_handler(
+            lsp_client,
+            definition_handler_name,
+            html_handlers.go_to_definition
+        )
+        handlers_attached_to_client[definition_handler_name] = true
+    end
+    local html_parser = HtmlParser:new(params.buf)
     html_parser:parse(function(css_links)
         for _, css_link in ipairs(css_links) do
             local html_file = css_link.file
-            if not state.stylesheets_by_html_file[html_file] then
-                state.stylesheets_by_html_file[html_file] = {}
+            if not state.html.stylesheets_by_file[html_file] then
+                state.html.stylesheets_by_file[html_file] = {}
             end
-            table.insert(
-                state.stylesheets_by_html_file[html_file],
-                css_link.href
-            )
             if css_link.type == "local" then
                 local css_bufnr = vim.fn.bufadd(css_link.href)
+                local css_path = vim.api.nvim_buf_get_name(css_bufnr)
+                table.insert(
+                    state.html.stylesheets_by_file[html_file],
+                    css_path
+                )
                 vim.api.nvim_buf_set_option(css_bufnr, "filetype", "css")
-                css_parser:set_buffer(css_bufnr)
+                local css_parser = CssParser:new(css_bufnr)
+                -- TODO: check if parsing is necessary before proceeding
                 css_parser:parse(function(selectors)
-                    state.selectors_by_css_file[css_link.href] = selectors
+                    state.css.selectors_by_file[css_path] = selectors
                 end)
             end
         end

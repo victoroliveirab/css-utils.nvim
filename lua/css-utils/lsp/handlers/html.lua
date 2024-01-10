@@ -71,7 +71,7 @@ local go_to_definition = function(original_handler, err, result, ctx, cfg)
     local selector = attr_name == "class" and "." .. node_text
         or "#" .. node_text
     local filepath = vim.api.nvim_buf_get_name(bufnr)
-    local stylesheets = state.stylesheets_by_html_file[filepath]
+    local stylesheets = state.html.stylesheets_by_file[filepath]
 
     if not stylesheets then
         logger.debug(
@@ -88,7 +88,7 @@ local go_to_definition = function(original_handler, err, result, ctx, cfg)
     local qf_entries = {}
     while index > 0 do
         local stylesheet_name = stylesheets[index]
-        local available_selectors = state.selectors_by_css_file[stylesheet_name]
+        local available_selectors = state.css.selectors_by_file[stylesheet_name]
         if available_selectors then
             local entries = available_selectors[selector]
             if entries then

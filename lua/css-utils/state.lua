@@ -3,12 +3,29 @@
 ---@field range integer[]
 ---@field selector_range integer[]
 
+---@class LspState
+---@field attached_handlers_map table<integer, table<string, boolean>>
+
+---@class HtmlState
+---@field stylesheets_by_file table<string, string[]>
+
+---@class CssState
+---@field selectors_by_file table<string, table<string, CssSelectorInfo[]>>
+
 ---@class State
----@field stylesheets_by_html_file table<string, string[]>
----@field selectors_by_css_file table<string, table<string, CssSelectorInfo[]>>
+---@field css CssState
+---@field html HtmlState
+---@field lsp LspState
 local State = {
-    stylesheets_by_html_file = {},
-    selectors_by_css_file = {},
+    css = {
+        selectors_by_file = {},
+    },
+    html = {
+        stylesheets_by_file = {},
+    },
+    lsp = {
+        attached_handlers_map = {},
+    },
 }
 
 return State
