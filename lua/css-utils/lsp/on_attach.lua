@@ -14,6 +14,7 @@ local on_attach = function(params)
         state.lsp.attached_handlers_map[lsp_client_id] = {}
     end
     local definition_handler_name = "textDocument/definition"
+    local hover_handler_name = "textDocument/hover"
     local handlers_attached_to_client =
         state.lsp.attached_handlers_map[lsp_client_id]
     if
@@ -28,6 +29,17 @@ local on_attach = function(params)
             html_handlers.go_to_definition
         )
         handlers_attached_to_client[definition_handler_name] = true
+    end
+
+    if
+        not vim.tbl_contains(handlers_attached_to_client, hover_handler_name)
+    then
+        lsp_utils.attach_custom_handler(
+            lsp_client,
+            hover_handler_name,
+            html_handlers.hover
+        )
+        handlers_attached_to_client[hover_handler_name] = true
     end
     local html_parser = HtmlParser:new(params.buf)
     html_parser:parse(function(css_links)

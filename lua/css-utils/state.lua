@@ -5,6 +5,7 @@
 
 ---@class LspState
 ---@field attached_handlers_map table<integer, table<string, boolean>>
+---@field hover_cache table<string, table<string, table>>
 
 ---@class HtmlState
 ---@field stylesheets_by_file table<string, string[]>
@@ -25,6 +26,7 @@ local State = {
     },
     lsp = {
         attached_handlers_map = {},
+        hover_cache = {},
     },
 }
 

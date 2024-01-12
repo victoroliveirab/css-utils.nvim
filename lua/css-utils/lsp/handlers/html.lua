@@ -2,24 +2,16 @@ local logger = require("css-utils.logger")
 local state = require("css-utils.state")
 local utils = require("css-utils.utils")
 
----@param original_handler lsp-handler
----@param err lsp.ResponseError?
----@param result LspResult
+local hover_state = {
+    float_bufnr = -1,
+    hover_index = 1,
+    selector = "",
+}
+
+---Performs various checks and returns, if node is valid, the attribute name and the selectior name
 ---@param ctx LspContext
----@param cfg table?
-local go_to_definition = function(original_handler, err, result, ctx, cfg)
-    local trigger_original_handler = function()
-        return original_handler(err, result, ctx, cfg)
-    end
-
-    if err then
-        logger.error(
-            "go_to_definition received an error. letting original handler handle"
-        )
-        logger.trace({ err = err, result = result, ctx = ctx, cfg = cfg })
-        return trigger_original_handler()
-    end
-
+---@return string?, string?
+local get_node_text_by_ctx = function(ctx)
     local bufnr = ctx.bufnr
     local pos = ctx.params.position.start
 
@@ -35,7 +27,7 @@ local go_to_definition = function(original_handler, err, result, ctx, cfg)
                 node and node:type() or "null"
             )
         )
-        return trigger_original_handler()
+        return
     end
 
     local ok, attr_name = pcall(function()
@@ -58,7 +50,7 @@ local go_to_definition = function(original_handler, err, result, ctx, cfg)
                 attr_name
             )
         )
-        return trigger_original_handler()
+        return
     end
 
     local node_text = utils.get_ts_node_text(bufnr, node)
@@ -68,15 +60,43 @@ local go_to_definition = function(original_handler, err, result, ctx, cfg)
         node_text = vim.fn.expand("<cword>")
     end
 
+    return attr_name, node_text
+end
+
+---@param original_handler lsp-handler
+---@param err lsp.ResponseError?
+---@param result LspResult
+---@param ctx LspContext
+---@param cfg table?
+local go_to_definition = function(original_handler, err, result, ctx, cfg)
+    local trigger_original_handler = function()
+        return original_handler(err, result, ctx, cfg)
+    end
+
+    if err then
+        logger.error(
+            "go_to_definition received an error. letting original handler handle"
+        )
+        logger.trace({ err = err, result = result, ctx = ctx, cfg = cfg })
+        return trigger_original_handler()
+    end
+
+    local attr_name, node_text = get_node_text_by_ctx(ctx)
+
+    if not attr_name or not node_text then
+        -- Logging already done at `get_node_text_by_ctx`
+        return trigger_original_handler()
+    end
+
     local selector = attr_name == "class" and "." .. node_text
         or "#" .. node_text
-    local filepath = vim.api.nvim_buf_get_name(bufnr)
+    local filepath = vim.api.nvim_buf_get_name(ctx.bufnr)
     local stylesheets = state.html.stylesheets_by_file[filepath]
 
     if not stylesheets then
         logger.debug(
             string.format(
-                "filepath=%s does not contain stylesheets. let original_handler handle",
+                "definition: filepath=%s does not contain stylesheets. let original_handler handle",
                 filepath
             )
         )
@@ -130,6 +150,154 @@ local go_to_definition = function(original_handler, err, result, ctx, cfg)
     vim.cmd("copen")
 end
 
+---@param original_handler lsp-handler
+---@param err lsp.ResponseError?
+---@param result LspResult
+---@param ctx LspContext
+---@param cfg table?
+local hover = function(original_handler, err, result, ctx, cfg)
+    local trigger_original_handler = function()
+        return original_handler(err, result, ctx, cfg)
+    end
+
+    if err then
+        logger.error(
+            "go_to_definition received an error. letting original handler handle"
+        )
+        logger.trace({ err = err, result = result, ctx = ctx, cfg = cfg })
+        return trigger_original_handler()
+    end
+
+    local attr_name, node_text = get_node_text_by_ctx(ctx)
+
+    if not attr_name or not node_text then
+        -- Logging already done at `get_node_text_by_ctx`
+        return trigger_original_handler()
+    end
+
+    local selector = (attr_name == "id" and "#" or ".") .. node_text
+    local filepath = vim.api.nvim_buf_get_name(ctx.bufnr)
+
+    -- Reset state to new selector
+    if hover_state.selector ~= selector then
+        logger.debug({
+            old_selector = hover_state.selector,
+            new_selector = selector,
+        })
+        hover_state.selector = selector
+        hover_state.hover_index = 1
+
+        local stylesheets = state.html.stylesheets_by_file[filepath]
+        if not stylesheets then
+            logger.debug(
+                string.format(
+                    "hover: filepath=%s does not contain stylesheets. let original_handler handle",
+                    filepath
+                )
+            )
+            return trigger_original_handler()
+        end
+
+        if not state.lsp.hover_cache[filepath] then
+            state.lsp.hover_cache[filepath] = {}
+        end
+
+        if not state.lsp.hover_cache[filepath][selector] then
+            local entries = {}
+            for _, stylesheet_name in ipairs(stylesheets) do
+                local definitions =
+                    state.css.selectors_by_file[stylesheet_name][selector]
+                if state.css.selectors_by_file[stylesheet_name][selector] then
+                    local css_bufnr = vim.fn.bufadd(stylesheet_name)
+                    for _, entry in ipairs(definitions) do
+                        local row_start = entry.selector_range[1]
+                        local row_end = entry.selector_range[3] + 1
+                        table.insert(
+                            entries,
+                            vim.api.nvim_buf_get_lines(
+                                css_bufnr,
+                                row_start,
+                                row_end,
+                                false
+                            )
+                        )
+                    end
+                end
+            end
+            state.lsp.hover_cache[filepath][selector] = entries
+        end
+    end
+    local all_entries = state.lsp.hover_cache[filepath][selector]
+    local entry = all_entries[hover_state.hover_index]
+
+    local float_bufnr, float_winnr =
+        vim.lsp.util.open_floating_preview(entry, "css", {
+            border = "solid",
+            focusable = true,
+            focus_id = ctx.method,
+            title = string.format(
+                "%d/%d",
+                hover_state.hover_index,
+                #all_entries
+            ),
+            title_pos = "right",
+            wrap = false,
+        })
+
+    vim.keymap.set("n", "<C-l>", function()
+        vim.api.nvim_buf_set_option(float_bufnr, "modifiable", true)
+        local new_index = hover_state.hover_index + 1
+        if new_index > #all_entries then
+            new_index = 1
+        end
+        hover_state.hover_index = new_index
+        vim.api.nvim_buf_set_lines(
+            float_bufnr,
+            0,
+            -1,
+            false,
+            state.lsp.hover_cache[filepath][selector][new_index]
+        )
+        vim.api.nvim_win_set_config(float_winnr, {
+            title = string.format("%d/%d", new_index, #all_entries),
+            title_pos = "right",
+        })
+        vim.api.nvim_buf_set_option(float_bufnr, "modifiable", false)
+    end, { buffer = float_bufnr, remap = true })
+
+    vim.keymap.set("n", "<C-h>", function()
+        vim.api.nvim_buf_set_option(float_bufnr, "modifiable", true)
+        local new_index = hover_state.hover_index - 1
+        if new_index < 1 then
+            new_index = #all_entries
+        end
+        hover_state.hover_index = new_index
+        vim.api.nvim_buf_set_lines(
+            float_bufnr,
+            0,
+            -1,
+            false,
+            state.lsp.hover_cache[filepath][selector][new_index]
+        )
+        vim.api.nvim_win_set_config(float_winnr, {
+            title = string.format("%d/%d", new_index, #all_entries),
+            title_pos = "right",
+        })
+        vim.api.nvim_buf_set_option(float_bufnr, "modifiable", false)
+    end, { buffer = float_bufnr, remap = true })
+
+    -- TODO: add <CR> keymap to open file in current window in the correct cursor position
+    -- vim.keymap.set(
+    --     "n",
+    --     "<CR>",
+    --     function() end,
+    --     { buffer = float_bufnr, remap = true }
+    -- )
+
+    logger.debug(state.lsp.hover_cache)
+end
+
 return {
     go_to_definition = go_to_definition,
+    hover = hover,
 }
