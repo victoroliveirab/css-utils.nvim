@@ -36,7 +36,6 @@ To do. The only configuration available for now is to enable dev-mode.
 
 ## Roadmap
 - [ ] Add hover handler and cycling window to peek definitions
-- [ ] Add cmp integration for autocomplete
 - [ ] Add support to `htmldjango` and `erb`
 - [ ] Add support to `<style>` tags
 - [ ] Add support to external/cdn stylesheets
