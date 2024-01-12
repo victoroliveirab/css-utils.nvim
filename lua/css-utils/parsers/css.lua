@@ -14,12 +14,15 @@ traverse_css = function(bufnr, node, selectors, depth)
     )
     local node_type = node:type()
     local is_class_selector = node_type == "class_selector"
-    if is_class_selector then
+    local is_id_selector = node_type == "id_selector"
+    if is_class_selector or is_id_selector then
         for child in node:iter_children() do
-            if child:type() == "class_name" then
-                local class = "." .. utils.get_ts_node_text(bufnr, child)
-                if not selectors[class] then
-                    selectors[class] = {}
+            local child_type = child:type()
+            if child_type == "class_name" or child_type == "id_name" then
+                local prefix = is_class_selector and "." or "#"
+                local name = prefix .. utils.get_ts_node_text(bufnr, child)
+                if not selectors[name] then
+                    selectors[name] = {}
                 end
                 local row_start, col_start, row_end, col_end = child:range()
                 -- Rollback on the tree to get the whole range of the selector
@@ -29,32 +32,34 @@ traverse_css = function(bufnr, node, selectors, depth)
                 end
                 logger.debug(
                     string.format(
-                        "class_name=%s found at range %d,%d,%d,%d",
-                        class,
+                        "%s=%s found at range %d,%d,%d,%d",
+                        child_type,
+                        name,
                         row_start,
                         col_start,
                         row_end,
                         col_end
                     )
                 )
-                local class_row_start, class_col_start, class_row_end, class_col_end =
+                local rs_row_start, rs_col_start, rs_row_end, rs_col_end =
                     rule_set:range()
                 logger.debug(
                     string.format(
-                        "rule_set of class_name=%s at range %d,%d,%d,%d",
-                        class,
-                        class_row_start,
-                        class_col_start,
-                        class_row_end,
-                        class_col_end
+                        "rule_set of %s=%s at range %d,%d,%d,%d",
+                        child_type,
+                        name,
+                        rs_row_start,
+                        rs_col_start,
+                        rs_row_end,
+                        rs_col_end
                     )
                 )
                 -- check if the selector_range is already present. If it is, no need to duplicate the selector
                 local is_range_present = false
-                for _, selector in ipairs(selectors[class]) do
+                for _, selector in ipairs(selectors[name]) do
                     if
-                        class_row_start == selector.selector_range[1]
-                        and class_col_start == selector.selector_range[2]
+                        rs_row_start == selector.selector_range[1]
+                        and rs_col_start == selector.selector_range[2]
                     then
                         is_range_present = true
                         break
@@ -67,19 +72,19 @@ traverse_css = function(bufnr, node, selectors, depth)
                 local css_selector_info = {
                     preview_text = vim.api.nvim_buf_get_lines(
                         bufnr,
-                        class_row_start,
-                        class_row_start + 1,
+                        rs_row_start,
+                        rs_row_start + 1,
                         false
                     )[1],
                     range = { row_start, col_start, row_end, col_end },
                     selector_range = {
-                        class_row_start,
-                        class_col_start,
-                        class_row_end,
-                        class_col_end,
+                        rs_row_start,
+                        rs_col_start,
+                        rs_row_end,
+                        rs_col_end,
                     },
                 }
-                table.insert(selectors[class], css_selector_info)
+                table.insert(selectors[name], css_selector_info)
             end
         end
         return
