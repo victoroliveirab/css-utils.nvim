@@ -1,3 +1,10 @@
+---@class ConfigKeymaps
+---@field peek_previous string
+---@field peek_next string
+
+---@class ConfigState
+---@field keymaps ConfigKeymaps
+
 ---@class CssSelectorInfo
 ---@field preview_text string
 ---@field range integer[]
@@ -14,10 +21,17 @@
 ---@field selectors_by_file table<string, table<string, CssSelectorInfo[]>>
 
 ---@class State
+---@field config ConfigState
 ---@field css CssState
 ---@field html HtmlState
 ---@field lsp LspState
 local State = {
+    config = {
+        keymaps = {
+            peek_next = "<C-l>",
+            peek_previous = "<C-h>",
+        },
+    },
     css = {
         selectors_by_file = {},
     },

@@ -198,6 +198,8 @@ local hover = function(original_handler, err, result, ctx, cfg)
             return trigger_original_handler()
         end
 
+        -- OPTIMIZE: if peek_prev and peek_next are disabled, no need to check all buffers, just the first
+
         if not state.lsp.hover_cache[filepath] then
             state.lsp.hover_cache[filepath] = {}
         end
@@ -244,47 +246,54 @@ local hover = function(original_handler, err, result, ctx, cfg)
             wrap = false,
         })
 
-    vim.keymap.set("n", "<C-l>", function()
-        vim.api.nvim_buf_set_option(float_bufnr, "modifiable", true)
-        local new_index = hover_state.hover_index + 1
-        if new_index > #all_entries then
-            new_index = 1
-        end
-        hover_state.hover_index = new_index
-        vim.api.nvim_buf_set_lines(
-            float_bufnr,
-            0,
-            -1,
-            false,
-            state.lsp.hover_cache[filepath][selector][new_index]
-        )
-        vim.api.nvim_win_set_config(float_winnr, {
-            title = string.format("%d/%d", new_index, #all_entries),
-            title_pos = "right",
-        })
-        vim.api.nvim_buf_set_option(float_bufnr, "modifiable", false)
-    end, { buffer = float_bufnr, remap = true })
+    local peek_prev_keymap = state.config.keymaps.peek_previous
+    local peek_next_keymap = state.config.keymaps.peek_next
 
-    vim.keymap.set("n", "<C-h>", function()
-        vim.api.nvim_buf_set_option(float_bufnr, "modifiable", true)
-        local new_index = hover_state.hover_index - 1
-        if new_index < 1 then
-            new_index = #all_entries
-        end
-        hover_state.hover_index = new_index
-        vim.api.nvim_buf_set_lines(
-            float_bufnr,
-            0,
-            -1,
-            false,
-            state.lsp.hover_cache[filepath][selector][new_index]
-        )
-        vim.api.nvim_win_set_config(float_winnr, {
-            title = string.format("%d/%d", new_index, #all_entries),
-            title_pos = "right",
-        })
-        vim.api.nvim_buf_set_option(float_bufnr, "modifiable", false)
-    end, { buffer = float_bufnr, remap = true })
+    if peek_next_keymap then
+        vim.keymap.set("n", peek_next_keymap, function()
+            vim.api.nvim_buf_set_option(float_bufnr, "modifiable", true)
+            local new_index = hover_state.hover_index + 1
+            if new_index > #all_entries then
+                new_index = 1
+            end
+            hover_state.hover_index = new_index
+            vim.api.nvim_buf_set_lines(
+                float_bufnr,
+                0,
+                -1,
+                false,
+                state.lsp.hover_cache[filepath][selector][new_index]
+            )
+            vim.api.nvim_win_set_config(float_winnr, {
+                title = string.format("%d/%d", new_index, #all_entries),
+                title_pos = "right",
+            })
+            vim.api.nvim_buf_set_option(float_bufnr, "modifiable", false)
+        end, { buffer = float_bufnr, remap = true })
+    end
+
+    if peek_prev_keymap then
+        vim.keymap.set("n", peek_prev_keymap, function()
+            vim.api.nvim_buf_set_option(float_bufnr, "modifiable", true)
+            local new_index = hover_state.hover_index - 1
+            if new_index < 1 then
+                new_index = #all_entries
+            end
+            hover_state.hover_index = new_index
+            vim.api.nvim_buf_set_lines(
+                float_bufnr,
+                0,
+                -1,
+                false,
+                state.lsp.hover_cache[filepath][selector][new_index]
+            )
+            vim.api.nvim_win_set_config(float_winnr, {
+                title = string.format("%d/%d", new_index, #all_entries),
+                title_pos = "right",
+            })
+            vim.api.nvim_buf_set_option(float_bufnr, "modifiable", false)
+        end, { buffer = float_bufnr, remap = true })
+    end
 
     -- TODO: add <CR> keymap to open file in current window in the correct cursor position
     -- vim.keymap.set(
