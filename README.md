@@ -32,7 +32,21 @@ use({
 ```
 
 ### Configuration
-To do. The only configuration available for now is to enable dev-mode.
+Below is the table with all the default values.
+
+```lua
+{
+    -- Sets up dev mode, with logging to debug
+    dev = false,
+    -- Disables the plugin
+    disabled = false,
+    -- Sets up custom keymaps. Map to the boolean `false` to disable a keymap
+    keymaps = {
+        peek_previous = "<C-h>", -- Peek selector's previous definition on hover
+        peek_next = "<C-l>", -- Peek selector's next definition on hover
+    }
+}
+```
 
 ## Roadmap
 - [ ] Add support to `htmldjango` and `erb`
