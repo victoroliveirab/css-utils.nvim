@@ -1,3 +1,4 @@
+local cmp = require("css-utils.cmp")
 local logger = require("css-utils.logger")
 local on_attach = require("css-utils.lsp.on_attach")
 
@@ -27,6 +28,7 @@ M.setup = function(config)
     vim.api.nvim_create_autocmd("LspAttach", {
         callback = on_attach,
     })
+    cmp.register()
 end
 
 return M
