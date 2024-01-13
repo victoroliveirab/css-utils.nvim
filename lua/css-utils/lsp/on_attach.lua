@@ -81,6 +81,7 @@ local on_attach = function(params)
         callback = function()
             logger.trace(string.format("reparsing bufnr=%d", params.buf))
             state.html.stylesheets_by_file[filename] = nil
+            state.lsp.hover_cache[filename] = nil
             logger.debug(state.html)
             parse_file()
         end,

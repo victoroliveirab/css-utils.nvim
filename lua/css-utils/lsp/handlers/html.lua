@@ -179,7 +179,9 @@ local hover = function(original_handler, err, result, ctx, cfg)
     local filepath = vim.api.nvim_buf_get_name(ctx.bufnr)
 
     -- Reset state to new selector
-    if hover_state.selector ~= selector then
+    if
+        hover_state.selector ~= selector or not state.lsp.hover_cache[filepath]
+    then
         logger.debug({
             old_selector = hover_state.selector,
             new_selector = selector,
