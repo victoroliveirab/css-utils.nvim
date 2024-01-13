@@ -208,7 +208,8 @@ local hover = function(original_handler, err, result, ctx, cfg)
 
         if not state.lsp.hover_cache[filepath][selector] then
             local entries = {}
-            for _, stylesheet_name in ipairs(stylesheets) do
+            for _, stylesheet in ipairs(stylesheets) do
+                local stylesheet_name = stylesheet.path
                 local definitions =
                     state.css.selectors_by_file[stylesheet_name][selector]
                 if state.css.selectors_by_file[stylesheet_name][selector] then

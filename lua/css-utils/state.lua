@@ -5,6 +5,10 @@
 ---@class ConfigState
 ---@field keymaps ConfigKeymaps
 
+---@class HtmlCssInfo
+---@field href string
+---@field path string
+
 ---@class CssSelectorInfo
 ---@field preview_text string
 ---@field range integer[]
@@ -15,7 +19,7 @@
 ---@field hover_cache table<string, table<string, table>>
 
 ---@class HtmlState
----@field stylesheets_by_file table<string, string[]>
+---@field stylesheets_by_file table<string, HtmlCssInfo[]>
 
 ---@class CssState
 ---@field selectors_by_file table<string, table<string, CssSelectorInfo[]>>

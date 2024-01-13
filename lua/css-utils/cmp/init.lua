@@ -61,9 +61,9 @@ function M:complete(cmp_content, cb)
     if is_class_cmp or is_id_cmp then
         local suggestions = {}
         local labels_indexes = {}
-        for _, stylesheet_path in ipairs(stylesheets) do
-            local selectors = state.css.selectors_by_file[stylesheet_path]
-            local stylesheet_rel_path = utils.get_relative_path(stylesheet_path)
+        for _, stylesheet in ipairs(stylesheets) do
+            local selectors = state.css.selectors_by_file[stylesheet.path]
+            local stylesheet_href = stylesheet.href
             for selector in pairs(selectors) do
                 local type = string.sub(selector, 1, 1)
                 local should_add_suggestion = (type == "." and is_class_cmp)
@@ -75,6 +75,10 @@ function M:complete(cmp_content, cb)
                     logger.debug("Adding suggestion")
                     logger.debug(label)
                     logger.debug(selector)
+                    local filename = stylesheet_href
+                    if vim.startswith(filename, "./") then
+                        filename = string.sub(filename, 3)
+                    end
                     if labels_indexes[label] then
                         local index = labels_indexes[label]
                         logger.debug(
@@ -86,7 +90,7 @@ function M:complete(cmp_content, cb)
                         )
                         suggestions[labels_indexes[label]].detail = suggestions[labels_indexes[label]].detail
                             .. ",\n"
-                            .. stylesheet_rel_path
+                            .. filename
                     else
                         logger.debug(
                             string.format(
@@ -97,10 +101,7 @@ function M:complete(cmp_content, cb)
                         table.insert(suggestions, {
                             kind = cmp.lsp.CompletionItemKind.Constant,
                             label = label,
-                            detail = string.format(
-                                "Found at %s",
-                                stylesheet_rel_path
-                            ),
+                            detail = string.format("Found at %s", filename),
                         })
                         labels_indexes[label] = #suggestions
                     end

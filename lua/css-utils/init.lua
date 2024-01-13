@@ -1,6 +1,7 @@
 local cmp = require("css-utils.cmp")
 local logger = require("css-utils.logger")
 local on_attach = require("css-utils.lsp.on_attach")
+local Path = require("plenary.path")
 local state = require("css-utils.state")
 
 local M = {}
@@ -47,6 +48,26 @@ M.setup = function(config)
             )
             state.config.keymaps[action] = keymaps[action]
         end
+    end
+
+    local css_utils_data_path = Path:new({
+        vim.fn.stdpath("data"),
+        "css-utils",
+    })
+
+    -- Check data directory to handle downloaded stylesheets
+    if not css_utils_data_path:exists() then
+        css_utils_data_path:mkdir()
+    end
+
+    local remote_stylesheets_path = Path:new({
+        vim.fn.stdpath("data"),
+        "css-utils",
+        "remote",
+    })
+
+    if not remote_stylesheets_path:exists() then
+        remote_stylesheets_path:mkdir()
     end
 
     vim.api.nvim_create_autocmd("LspAttach", {

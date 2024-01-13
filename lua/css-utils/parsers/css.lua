@@ -70,12 +70,8 @@ traverse_css = function(bufnr, node, selectors, depth)
                 end
 
                 local css_selector_info = {
-                    preview_text = vim.api.nvim_buf_get_lines(
-                        bufnr,
-                        rs_row_start,
-                        rs_row_start + 1,
-                        false
-                    )[1],
+                    -- FIXME: using vim.api.nvim_buf_get_lines won't work for unformatted files. use vim.api.nvim_buf_get_text instead
+                    preview_text = "A",
                     range = { row_start, col_start, row_end, col_end },
                     selector_range = {
                         rs_row_start,

@@ -60,18 +60,97 @@ local on_attach = function(params)
                     state.html.stylesheets_by_file[html_file] = {}
                 end
                 -- OPTIMIZE: avoid reparsing CSS that was already parsed and not modified
+                -- REFACTOR: DRY this badboy
                 if css_link.type == "local" then
                     local css_bufnr = vim.fn.bufadd(css_link.href)
                     local css_path = vim.api.nvim_buf_get_name(css_bufnr)
-                    table.insert(
-                        state.html.stylesheets_by_file[html_file],
-                        css_path
-                    )
+                    table.insert(state.html.stylesheets_by_file[html_file], {
+                        href = css_link.href,
+                        path = css_path,
+                    })
                     vim.api.nvim_buf_set_option(css_bufnr, "filetype", "css")
                     local css_parser = CssParser:new(css_bufnr)
                     css_parser:parse(function(selectors)
                         state.css.selectors_by_file[css_path] = selectors
                     end)
+                elseif css_link.type == "remote" then
+                    local url = css_link.href
+                    logger.debug(string.format("fetching css file at %s", url))
+                    local css_filename = string.gsub(url, "/", "_")
+                    local file = require("plenary.path"):new({
+                        vim.fn.stdpath("data"),
+                        "css-utils",
+                        "remote",
+                        css_filename,
+                    })
+                    if file:exists() then
+                        logger.debug(
+                            string.format(
+                                "%s already exists, jumping http fetching",
+                                file.filename
+                            )
+                        )
+                        local css_bufnr = vim.fn.bufadd(file.filename)
+                        local css_path = vim.api.nvim_buf_get_name(css_bufnr)
+                        table.insert(
+                            state.html.stylesheets_by_file[html_file],
+                            {
+                                href = url,
+                                path = css_path,
+                            }
+                        )
+                        vim.api.nvim_buf_set_option(
+                            css_bufnr,
+                            "filetype",
+                            "css"
+                        )
+                        local css_parser = CssParser:new(css_bufnr)
+                        css_parser:parse(function(selectors)
+                            state.css.selectors_by_file[file.filename] =
+                                selectors
+                        end)
+                    else
+                        require("plenary.curl").get(url, {
+                            callback = function(response)
+                                file:touch()
+                                local writeable = io.open(file.filename, "w")
+                                if not writeable then
+                                    logger.error(
+                                        string.format(
+                                            "could not open %s as writeable, aborting...",
+                                            file.filename
+                                        )
+                                    )
+                                    return
+                                end
+                                writeable:write(response.body)
+                                writeable:close()
+                                local css_bufnr = vim.fn.bufadd(file.filename)
+                                local css_path =
+                                    vim.api.nvim_buf_get_name(css_bufnr)
+                                table.insert(
+                                    state.html.stylesheets_by_file[html_file],
+                                    {
+                                        href = url,
+                                        path = css_path,
+                                    }
+                                )
+                                vim.api.nvim_buf_set_option(
+                                    css_bufnr,
+                                    "filetype",
+                                    "css"
+                                )
+                                local css_parser = CssParser:new(css_bufnr)
+                                css_parser:parse(function(selectors)
+                                    state.css.selectors_by_file[css_path] =
+                                        selectors
+                                end)
+                            end,
+                            on_error = function(err)
+                                logger.error(err)
+                            end,
+                        })
+                    end
                 end
             end
         end)

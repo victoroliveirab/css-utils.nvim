@@ -1,7 +1,8 @@
 local Parser = require("css-utils.parsers")
 local logger = require("css-utils.logger")
 
-local href_pattern = 'href="[A-z0-9./:]*"'
+local href_pattern_dbl_quotes = 'href="[^"]*"'
+local href_pattern_sgl_quotes = "href='[^']*'"
 
 ---@class HtmlParsedLink
 ---@field href string
@@ -25,7 +26,10 @@ local handle_link_tag = function(bufnr, item, stylesheets)
         return
     end
 
-    local href_start, href_end = string.find(line, href_pattern)
+    local href_start, href_end = string.find(line, href_pattern_dbl_quotes)
+    if not href_start then
+        href_start, href_end = string.find(line, href_pattern_sgl_quotes)
+    end
     -- Remove href=" from the start and " at the end
     local href = string.sub(line, href_start + 6, href_end - 1)
 
@@ -38,7 +42,7 @@ local handle_link_tag = function(bufnr, item, stylesheets)
     local entry = {
         href = href,
         file = vim.api.nvim_buf_get_name(bufnr),
-        type = string.sub(line, 1, 4) == "http" and "remote" or "local",
+        type = string.sub(href, 1, 4) == "http" and "remote" or "local",
     }
     logger.debug(string.format("New entry found on bufnr=%d:", bufnr))
     logger.debug(entry)
@@ -69,10 +73,14 @@ function HtmlParser:parse(cb)
             local items = object.items
             for _, item in ipairs(items) do
                 local type = item.text
+                logger.debug(type)
+                logger.debug(item)
                 if type == "[Field] link" then
                     handle_link_tag(self.bufnr, item, stylesheets)
                 end
                 -- TODO: handle other cases such as <style> tags
+                -- if item.kind == "Class" then
+                -- end
             end
             cb(stylesheets)
         end,
