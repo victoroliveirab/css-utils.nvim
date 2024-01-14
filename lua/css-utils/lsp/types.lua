@@ -1,3 +1,5 @@
+---@meta
+
 ---@alias LspResultContents { kind: string, value: string }
 
 ---@alias LspRangePoint { character: integer, line: integer }

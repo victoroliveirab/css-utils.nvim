@@ -3,7 +3,6 @@ local state = require("css-utils.state")
 local utils = require("css-utils.utils")
 
 local hover_state = {
-    float_bufnr = -1,
     hover_index = 1,
     selector = "",
 }

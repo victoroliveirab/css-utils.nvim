@@ -75,7 +75,6 @@ local on_attach = function(params)
                     end)
                 elseif css_link.type == "remote" then
                     local url = css_link.href
-                    logger.debug(string.format("fetching css file at %s", url))
                     local css_filename = string.gsub(url, "/", "_")
                     local file = require("plenary.path"):new({
                         vim.fn.stdpath("data"),
@@ -110,6 +109,9 @@ local on_attach = function(params)
                                 selectors
                         end)
                     else
+                        logger.debug(
+                            string.format("fetching css file at %s", url)
+                        )
                         require("plenary.curl").get(url, {
                             callback = function(response)
                                 file:touch()

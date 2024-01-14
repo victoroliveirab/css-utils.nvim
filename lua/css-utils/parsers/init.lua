@@ -1,7 +1,7 @@
 local logger = require("css-utils.logger")
 
 ---@class BaseParser
----@field buf integer
+---@field bufnr integer
 local Parser = {
     bufnr = -1,
 }

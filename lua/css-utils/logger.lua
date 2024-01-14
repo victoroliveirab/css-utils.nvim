@@ -1,6 +1,6 @@
 local logger = require("plenary.log").new({
     level = "info",
-    plugin = "css_utils.nvim",
+    plugin = "css-utils.nvim",
     use_console = false,
 })
 

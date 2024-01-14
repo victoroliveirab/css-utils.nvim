@@ -19,6 +19,5 @@
 
 ---@class CmpSourceInstance
 ---@field name string
----@field cache table
 ---@field complete? fun(self: CmpSourceInstance, content: CmpContent, callback: CmpCallback)
 ---@field register? fun()

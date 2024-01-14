@@ -1,7 +1,8 @@
+local Path = require("plenary.path")
+
 local cmp = require("css-utils.cmp")
 local logger = require("css-utils.logger")
 local on_attach = require("css-utils.lsp.on_attach")
-local Path = require("plenary.path")
 local state = require("css-utils.state")
 
 local M = {}

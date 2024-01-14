@@ -13,7 +13,6 @@ local id_regex = "id=[\"'].*"
 
 ---@type CmpSourceInstance
 local M = {
-    cache = {},
     name = "css-utils",
 }
 
