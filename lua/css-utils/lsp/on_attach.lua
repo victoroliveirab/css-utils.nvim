@@ -125,26 +125,29 @@ local on_attach = function(params)
                                 end
                                 writeable:write(response.body)
                                 writeable:close()
-                                local css_bufnr = vim.fn.bufadd(file.filename)
-                                local css_path =
-                                    vim.api.nvim_buf_get_name(css_bufnr)
-                                table.insert(
-                                    state.html.stylesheets_by_file[html_file],
-                                    {
-                                        href = url,
-                                        path = css_path,
-                                    }
-                                )
-                                vim.api.nvim_buf_set_option(
-                                    css_bufnr,
-                                    "filetype",
-                                    "css"
-                                )
-                                local css_parser = CssParser:new(css_bufnr)
-                                css_parser:parse(function(selectors)
-                                    state.css.selectors_by_file[css_path] =
-                                        selectors
-                                end)
+                                vim.defer_fn(function()
+                                    local css_bufnr =
+                                        vim.fn.bufadd(file.filename)
+                                    local css_path =
+                                        vim.api.nvim_buf_get_name(css_bufnr)
+                                    table.insert(
+                                        state.html.stylesheets_by_file[html_file],
+                                        {
+                                            href = url,
+                                            path = css_path,
+                                        }
+                                    )
+                                    vim.api.nvim_buf_set_option(
+                                        css_bufnr,
+                                        "filetype",
+                                        "css"
+                                    )
+                                    local css_parser = CssParser:new(css_bufnr)
+                                    css_parser:parse(function(selectors)
+                                        state.css.selectors_by_file[css_path] =
+                                            selectors
+                                    end)
+                                end, 10000)
                             end,
                             on_error = function(err)
                                 logger.error(err)
