@@ -106,7 +106,8 @@ local go_to_definition = function(original_handler, err, result, ctx, cfg)
     local index = #stylesheets
     local qf_entries = {}
     while index > 0 do
-        local stylesheet_name = stylesheets[index]
+        local stylesheet_info = stylesheets[index]
+        local stylesheet_name = stylesheet_info.path
         local available_selectors = state.css.selectors_by_file[stylesheet_name]
         if available_selectors then
             local entries = available_selectors[selector]
