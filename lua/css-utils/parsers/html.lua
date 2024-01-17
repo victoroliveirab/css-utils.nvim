@@ -7,13 +7,13 @@ local href_pattern_sgl_quotes = "href='[^']*'"
 ---@class HtmlParsedLink
 ---@field href string
 ---@field file string
----@field type "local" | "remote"
+---@field type "inline" | "local" | "remote"
 
 ---@param bufnr integer
 ---@param item LspSymbol
 ---@param stylesheets HtmlParsedLink[]
 local handle_link_tag = function(bufnr, item, stylesheets)
-    logger.trace(string.format("handle_link_tag() - buf=%d", bufnr))
+    logger.trace(string.format("handle_link_tag() - bufnr=%d", bufnr))
     logger.trace(item)
     local line =
         vim.api.nvim_buf_get_lines(bufnr, item.lnum - 1, item.lnum, false)[1]
@@ -77,10 +77,13 @@ function HtmlParser:parse(cb)
                 logger.debug(item)
                 if type == "[Field] link" then
                     handle_link_tag(self.bufnr, item, stylesheets)
+                elseif type == "[Field] style" then
+                    table.insert(stylesheets, {
+                        href = vim.api.nvim_buf_get_name(self.bufnr),
+                        file = vim.api.nvim_buf_get_name(self.bufnr),
+                        type = "inline",
+                    })
                 end
-                -- TODO: handle other cases such as <style> tags
-                -- if item.kind == "Class" then
-                -- end
             end
             cb(stylesheets)
         end,

@@ -72,6 +72,16 @@ local on_attach = function(params)
                     local css_parser = CssParser:new(css_bufnr)
                     css_parser:parse(function(selectors)
                         state.css.selectors_by_file[css_path] = selectors
+                        logger.debug("Done local")
+                    end)
+                elseif css_link.type == "inline" then
+                    table.insert(state.html.stylesheets_by_file[html_file], {
+                        href = css_link.href,
+                        path = css_link.file,
+                    })
+                    local css_parser = CssParser:new(params.buf)
+                    css_parser:parse(function(selectors)
+                        state.css.selectors_by_file[css_link.file] = selectors
                     end)
                 elseif css_link.type == "remote" then
                     local url = css_link.href
