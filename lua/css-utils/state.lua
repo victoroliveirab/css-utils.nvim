@@ -3,6 +3,7 @@
 ---@field peek_next string
 
 ---@class ConfigState
+---@field allow_style_in_body boolean
 ---@field keymaps ConfigKeymaps
 
 ---@class HtmlCssInfo
@@ -31,6 +32,7 @@
 ---@field lsp LspState
 local State = {
     config = {
+        allow_style_in_body = false,
         keymaps = {
             peek_next = "<C-l>",
             peek_previous = "<C-h>",

@@ -1,93 +1,118 @@
+local constants = require("css-utils.constants")
 local Parser = require("css-utils.parsers")
 local logger = require("css-utils.logger")
 
 local href_pattern_dbl_quotes = 'href="[^"]*"'
 local href_pattern_sgl_quotes = "href='[^']*'"
+local rel_stylesheet_dbl_quotes = 'rel="stylesheet"'
+local rel_stylesheet_sgl_quotes = "rel='stylesheet'"
 
 ---@class HtmlParsedLink
 ---@field href string
 ---@field file string
 ---@field type "inline" | "local" | "remote"
+---@field range? integer[]
 
----@param bufnr integer
----@param item LspSymbol
----@param stylesheets HtmlParsedLink[]
-local handle_link_tag = function(bufnr, item, stylesheets)
-    logger.trace(string.format("handle_link_tag() - bufnr=%d", bufnr))
-    logger.trace(item)
-    local line =
-        vim.api.nvim_buf_get_lines(bufnr, item.lnum - 1, item.lnum, false)[1]
-
-    -- TODO: improve the decision to consider a link a stylesheet or not
-    -- This seems too restrictive
-    if not string.find(line, 'rel="stylesheet"') then
-        logger.debug("Line discarded (is not a stylesheet):")
-        logger.debug(line)
+---@param tag string
+---@param html_filename string
+---@return HtmlParsedLink?
+local handle_link_tag = function(tag, html_filename)
+    logger.trace("handle_link_tag()")
+    if
+        not string.find(tag, rel_stylesheet_dbl_quotes)
+        and not string.find(tag, rel_stylesheet_sgl_quotes)
+    then
+        logger.debug("tag discarded (is not a stylesheet):")
+        logger.debug(tag)
         return
     end
 
-    local href_start, href_end = string.find(line, href_pattern_dbl_quotes)
+    local href_start, href_end = string.find(tag, href_pattern_dbl_quotes)
     if not href_start then
-        href_start, href_end = string.find(line, href_pattern_sgl_quotes)
+        href_start, href_end = string.find(tag, href_pattern_sgl_quotes)
     end
     -- Remove href=" from the start and " at the end
-    local href = string.sub(line, href_start + 6, href_end - 1)
-
+    local href = string.sub(tag, href_start + 6, href_end - 1)
     if not vim.endswith(href, "css") then
-        logger.debug("Line discarded (doesn't end with css)")
-        logger.debug(line)
+        logger.debug("tag discarded (href doesn't end with css)")
+        logger.debug(tag)
         return
     end
 
     local entry = {
         href = href,
-        file = vim.api.nvim_buf_get_name(bufnr),
+        file = html_filename,
         type = string.sub(href, 1, 4) == "http" and "remote" or "local",
     }
-    logger.debug(string.format("New entry found on bufnr=%d:", bufnr))
-    logger.debug(entry)
-    table.insert(stylesheets, entry)
+    return entry
 end
 
 ---@class HtmlParser : BaseParser
----@field acc HtmlParser[]
+---@field config { stop_at_body: boolean }
 local HtmlParser = {}
 setmetatable(HtmlParser, { __index = Parser })
 
 ---@param bufnr integer
 ---@return HtmlParser
-function HtmlParser:new(bufnr)
+function HtmlParser:new(bufnr, config)
     logger.trace("HtmlParser:new()")
     local instance = Parser:new(bufnr)
     setmetatable(instance, { __index = HtmlParser })
+    instance.config = config
     return instance
 end
 
 ---@param cb fun(links: HtmlParsedLink[]): nil
 function HtmlParser:parse(cb)
     logger.trace("HtmlParser:parse()")
-    vim.lsp.buf.document_symbol({
-        on_list = function(object)
-            local stylesheets = {}
-            ---@type LspSymbol[]
-            local items = object.items
-            for _, item in ipairs(items) do
-                local type = item.text
-                logger.debug(type)
-                logger.debug(item)
-                if type == "[Field] link" then
-                    handle_link_tag(self.bufnr, item, stylesheets)
-                elseif type == "[Field] style" then
-                    table.insert(stylesheets, {
-                        href = vim.api.nvim_buf_get_name(self.bufnr),
-                        file = vim.api.nvim_buf_get_name(self.bufnr),
-                        type = "inline",
-                    })
+    local bufnr = self.bufnr
+    local html_filename = vim.api.nvim_buf_get_name(bufnr)
+    logger.trace(vim.api.nvim_buf_get_name(bufnr))
+    local ts_parser = vim.treesitter.get_parser(bufnr, "html")
+    local root = ts_parser:parse()[1]:root()
+    local query =
+        vim.treesitter.query.parse("html", constants.treesitter_html_tags)
+    local stylesheets = {}
+    for _, match in query:iter_matches(root, bufnr, 0, 0) do
+        for _, node in pairs(match) do
+            local type = node:type()
+            if type == "raw_text" then
+                -- NOTE: for some reason, table.pack is erroring
+                local row_start, col_start, row_end, col_end = node:range()
+                local range = { row_start, col_start, row_end, col_end }
+                logger.debug("inline style found at range:")
+                logger.debug(range)
+                table.insert(stylesheets, {
+                    href = html_filename,
+                    file = html_filename,
+                    type = "inline",
+                    range = range,
+                })
+            else
+                local text = vim.treesitter.get_node_text(node, bufnr)
+                logger.info(text)
+                if
+                    vim.startswith(text, "<body") and self.config.stop_at_body
+                then
+                    logger.debug(
+                        "found <body>, stopping search and returning stylesheets"
+                    )
+                    return cb(stylesheets)
+                end
+                if vim.startswith(text, "<link") then
+                    local entry = handle_link_tag(text, html_filename)
+                    if entry then
+                        logger.debug(
+                            string.format("new entry from tag %s", text)
+                        )
+                        logger.debug(entry)
+                        table.insert(stylesheets, entry)
+                    end
                 end
             end
-            cb(stylesheets)
-        end,
-    })
+        end
+    end
+    cb(stylesheets)
 end
 
 return HtmlParser

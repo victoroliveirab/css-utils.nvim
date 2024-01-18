@@ -46,7 +46,10 @@ local on_attach = function(params)
     local filename = vim.api.nvim_buf_get_name(params.buf)
 
     local parse_file = function()
-        local html_parser = HtmlParser:new(params.buf)
+        local html_parser = HtmlParser:new(
+            params.buf,
+            { stop_at_body = not state.config.allow_style_in_body }
+        )
         html_parser:parse(function(css_links)
             for _, css_link in ipairs(css_links) do
                 local html_file = css_link.file
@@ -69,17 +72,16 @@ local on_attach = function(params)
                         path = css_path,
                     })
                     vim.api.nvim_buf_set_option(css_bufnr, "filetype", "css")
-                    local css_parser = CssParser:new(css_bufnr)
+                    local css_parser = CssParser:new(css_bufnr, css_link)
                     css_parser:parse(function(selectors)
                         state.css.selectors_by_file[css_path] = selectors
-                        logger.debug("Done local")
                     end)
                 elseif css_link.type == "inline" then
                     table.insert(state.html.stylesheets_by_file[html_file], {
                         href = css_link.href,
                         path = css_link.file,
                     })
-                    local css_parser = CssParser:new(params.buf)
+                    local css_parser = CssParser:new(params.buf, css_link)
                     css_parser:parse(function(selectors)
                         state.css.selectors_by_file[css_link.file] = selectors
                     end)
@@ -113,7 +115,7 @@ local on_attach = function(params)
                             "filetype",
                             "css"
                         )
-                        local css_parser = CssParser:new(css_bufnr)
+                        local css_parser = CssParser:new(css_bufnr, css_link)
                         css_parser:parse(function(selectors)
                             state.css.selectors_by_file[file.filename] =
                                 selectors
@@ -154,7 +156,8 @@ local on_attach = function(params)
                                         "filetype",
                                         "css"
                                     )
-                                    local css_parser = CssParser:new(css_bufnr)
+                                    local css_parser =
+                                        CssParser:new(css_bufnr, css_link)
                                     css_parser:parse(function(selectors)
                                         state.css.selectors_by_file[css_path] =
                                             selectors
