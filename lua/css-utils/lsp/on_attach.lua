@@ -11,37 +11,21 @@ local on_attach = function(params)
     if lsp_client.name ~= "html" then
         return
     end
-    if not state.lsp.attached_handlers_map[lsp_client_id] then
-        state.lsp.attached_handlers_map[lsp_client_id] = {}
+    -- Make sure duplicate handler attaching is not done
+    if state.lsp.attached_handlers_map[lsp_client_id] then
+        return
     end
-    local definition_handler_name = "textDocument/definition"
-    local hover_handler_name = "textDocument/hover"
-    local handlers_attached_to_client =
-        state.lsp.attached_handlers_map[lsp_client_id]
-    if
-        not vim.tbl_contains(
-            handlers_attached_to_client,
-            definition_handler_name
-        )
-    then
-        lsp_utils.attach_custom_handler(
-            lsp_client,
-            definition_handler_name,
-            html_handlers.go_to_definition
-        )
-        handlers_attached_to_client[definition_handler_name] = true
-    end
-
-    if
-        not vim.tbl_contains(handlers_attached_to_client, hover_handler_name)
-    then
-        lsp_utils.attach_custom_handler(
-            lsp_client,
-            hover_handler_name,
-            html_handlers.hover
-        )
-        handlers_attached_to_client[hover_handler_name] = true
-    end
+    state.lsp.attached_handlers_map[lsp_client_id] = true
+    lsp_utils.attach_custom_handler(
+        lsp_client,
+        "textDocument/definition",
+        html_handlers.go_to_definition
+    )
+    lsp_utils.attach_custom_handler(
+        lsp_client,
+        "textDocument/hover",
+        html_handlers.hover
+    )
 
     local filename = vim.api.nvim_buf_get_name(params.buf)
 
@@ -176,7 +160,13 @@ local on_attach = function(params)
     parse_file()
     vim.api.nvim_create_autocmd("BufWritePost", {
         callback = function()
-            logger.trace(string.format("reparsing bufnr=%d", params.buf))
+            logger.trace(
+                string.format(
+                    "reparsing bufnr=%d, filename=%s",
+                    params.buf,
+                    filename
+                )
+            )
             state.html.stylesheets_by_file[filename] = nil
             state.lsp.hover_cache[filename] = nil
             logger.debug(state.html)

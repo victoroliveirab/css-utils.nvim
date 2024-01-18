@@ -16,7 +16,7 @@
 ---@field selector_range integer[]
 
 ---@class LspState
----@field attached_handlers_map table<integer, table<string, boolean>>
+---@field attached_handlers_map table<integer, true>
 ---@field hover_cache table<string, table<string, table>>
 
 ---@class HtmlState
