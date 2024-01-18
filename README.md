@@ -36,6 +36,8 @@ Below is the table with all the default values.
 
 ```lua
 {
+    -- Whether <style> tags are allowed inside <body>. `false` makes parsing html bail when <body> is found, which should increase performance.
+    allow_style_in_body = false,
     -- Sets up dev mode, with logging to debug
     dev = false,
     -- Disables the plugin
