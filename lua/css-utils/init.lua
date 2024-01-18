@@ -8,11 +8,12 @@ local state = require("css-utils.state")
 local M = {}
 
 ---@class CssUtilsConfig
+---@field allow_style_in_body boolean?
 ---@field dev boolean?
 ---@field disabled boolean?
 ---@field keymaps ConfigKeymaps?
 
----@param config CssUtilsConfig
+---@param config CssUtilsConfig?
 M.setup = function(config)
     config = config or {}
     local disabled = config.disabled or false
@@ -50,6 +51,9 @@ M.setup = function(config)
             state.config.keymaps[action] = keymaps[action]
         end
     end
+
+    local allow_style_in_body = config.allow_style_in_body or false
+    state.config.allow_style_in_body = allow_style_in_body
 
     local css_utils_data_path = Path:new({
         vim.fn.stdpath("data"),
