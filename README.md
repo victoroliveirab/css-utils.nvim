@@ -10,8 +10,8 @@ Likewise, the `hover` handler, although implemented, only shows information rega
 
 ## How?
 
-By leveraging the HTML language server `findDocumentSymbols` handler, tracking referenced stylesheets, and parsing each one of them with [tree-sitter](https://github.com/tree-sitter/tree-sitter) inside neovim,
-we can create a map of classes/ids to file locations and have a similar workflow to what we have developing javascript-based web apps.
+By leveraging [tree-sitter](https://github.com/tree-sitter/tree-sitter) inside neovim, we parse an HTML file, track referenced stylesheets and inline styles, and parse each one of them.
+This creates a map of classes/ids to file locations and provide a similar workflow to what we have developing javascript-based web apps.
 
 ## I'm sold! How do I get started?
 
