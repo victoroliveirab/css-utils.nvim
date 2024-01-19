@@ -1,3 +1,5 @@
+---@class ListWithTimestamp<T>: { list: T, timestamp: integer }
+
 ---@class ConfigKeymaps
 ---@field peek_previous string
 ---@field peek_next string
@@ -20,10 +22,10 @@
 ---@field hover_cache table<string, table<string, table>>
 
 ---@class HtmlState
----@field stylesheets_by_file table<string, HtmlCssInfo[]>
+---@field stylesheets_by_file table<string, ListWithTimestamp<HtmlCssInfo[]>>
 
 ---@class CssState
----@field selectors_by_file table<string, table<string, CssSelectorInfo[]>>
+---@field selectors_by_file table<string, ListWithTimestamp<table<string, CssSelectorInfo[]>>>
 
 ---@class State
 ---@field config ConfigState

@@ -26,8 +26,8 @@ function M:complete(cmp_content, cb)
     end
 
     local html_file = vim.api.nvim_buf_get_name(ctx.bufnr)
-    local stylesheets = state.html.stylesheets_by_file[html_file]
-    if not stylesheets or #stylesheets == 0 then
+    local stylesheets_dict = state.html.stylesheets_by_file[html_file]
+    if not stylesheets_dict or #stylesheets_dict.list == 0 then
         return cb()
     end
 
@@ -60,8 +60,9 @@ function M:complete(cmp_content, cb)
     if is_class_cmp or is_id_cmp then
         local suggestions = {}
         local labels_indexes = {}
+        local stylesheets = stylesheets_dict.list
         for _, stylesheet in ipairs(stylesheets) do
-            local selectors = state.css.selectors_by_file[stylesheet.path]
+            local selectors = state.css.selectors_by_file[stylesheet.path].list
             local stylesheet_href = stylesheet.href
             for selector in pairs(selectors) do
                 local type = string.sub(selector, 1, 1)

@@ -90,9 +90,9 @@ local go_to_definition = function(original_handler, err, result, ctx, cfg)
     local selector = attr_name == "class" and "." .. node_text
         or "#" .. node_text
     local filepath = vim.api.nvim_buf_get_name(ctx.bufnr)
-    local stylesheets = state.html.stylesheets_by_file[filepath]
+    local stylesheets_dict = state.html.stylesheets_by_file[filepath]
 
-    if not stylesheets then
+    if not stylesheets_dict then
         logger.debug(
             string.format(
                 "definition: filepath=%s does not contain stylesheets. let original_handler handle",
@@ -103,12 +103,14 @@ local go_to_definition = function(original_handler, err, result, ctx, cfg)
     end
 
     -- Traverse the stylesheets, giving priority to the imported later
+    local stylesheets = stylesheets_dict.list
     local index = #stylesheets
     local qf_entries = {}
     while index > 0 do
         local stylesheet_info = stylesheets[index]
         local stylesheet_name = stylesheet_info.path
-        local available_selectors = state.css.selectors_by_file[stylesheet_name]
+        local available_selectors =
+            state.css.selectors_by_file[stylesheet_name].list
         if available_selectors then
             local entries = available_selectors[selector]
             if entries then
@@ -189,8 +191,8 @@ local hover = function(original_handler, err, result, ctx, cfg)
         hover_state.selector = selector
         hover_state.hover_index = 1
 
-        local stylesheets = state.html.stylesheets_by_file[filepath]
-        if not stylesheets then
+        local stylesheets_dict = state.html.stylesheets_by_file[filepath]
+        if not stylesheets_dict then
             logger.debug(
                 string.format(
                     "hover: filepath=%s does not contain stylesheets. let original_handler handle",
@@ -206,13 +208,15 @@ local hover = function(original_handler, err, result, ctx, cfg)
             state.lsp.hover_cache[filepath] = {}
         end
 
+        local stylesheets = stylesheets_dict.list
+
         if not state.lsp.hover_cache[filepath][selector] then
             local entries = {}
             for _, stylesheet in ipairs(stylesheets) do
                 local stylesheet_name = stylesheet.path
                 local definitions =
-                    state.css.selectors_by_file[stylesheet_name][selector]
-                if state.css.selectors_by_file[stylesheet_name][selector] then
+                    state.css.selectors_by_file[stylesheet_name].list[selector]
+                if definitions then
                     local css_bufnr = vim.fn.bufadd(stylesheet_name)
                     for _, entry in ipairs(definitions) do
                         local row_start = entry.selector_range[1]

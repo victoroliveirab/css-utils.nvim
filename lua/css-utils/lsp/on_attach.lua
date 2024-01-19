@@ -44,30 +44,45 @@ local on_attach = function(params)
                             filename
                         )
                     )
-                    state.html.stylesheets_by_file[html_file] = {}
+                    state.html.stylesheets_by_file[html_file] = {
+                        list = {},
+                        timestamp = os.time(),
+                    }
                 end
                 -- OPTIMIZE: avoid reparsing CSS that was already parsed and not modified
                 -- REFACTOR: DRY this badboy
                 if css_link.type == "local" then
                     local css_bufnr = vim.fn.bufadd(css_link.href)
                     local css_path = vim.api.nvim_buf_get_name(css_bufnr)
-                    table.insert(state.html.stylesheets_by_file[html_file], {
-                        href = css_link.href,
-                        path = css_path,
-                    })
+                    table.insert(
+                        state.html.stylesheets_by_file[html_file].list,
+                        {
+                            href = css_link.href,
+                            path = css_path,
+                        }
+                    )
                     vim.api.nvim_buf_set_option(css_bufnr, "filetype", "css")
                     local css_parser = CssParser:new(css_bufnr, css_link)
                     css_parser:parse(function(selectors)
-                        state.css.selectors_by_file[css_path] = selectors
+                        state.css.selectors_by_file[css_path] = {
+                            list = selectors,
+                            timestamp = os.time(),
+                        }
                     end)
                 elseif css_link.type == "inline" then
-                    table.insert(state.html.stylesheets_by_file[html_file], {
-                        href = css_link.href,
-                        path = css_link.file,
-                    })
+                    table.insert(
+                        state.html.stylesheets_by_file[html_file].list,
+                        {
+                            href = css_link.href,
+                            path = css_link.file,
+                        }
+                    )
                     local css_parser = CssParser:new(params.buf, css_link)
                     css_parser:parse(function(selectors)
-                        state.css.selectors_by_file[css_link.file] = selectors
+                        state.css.selectors_by_file[css_link.file] = {
+                            list = selectors,
+                            timestamp = os.time(),
+                        }
                     end)
                 elseif css_link.type == "remote" then
                     local url = css_link.href
@@ -88,7 +103,7 @@ local on_attach = function(params)
                         local css_bufnr = vim.fn.bufadd(file.filename)
                         local css_path = vim.api.nvim_buf_get_name(css_bufnr)
                         table.insert(
-                            state.html.stylesheets_by_file[html_file],
+                            state.html.stylesheets_by_file[html_file].list,
                             {
                                 href = url,
                                 path = css_path,
@@ -101,8 +116,10 @@ local on_attach = function(params)
                         )
                         local css_parser = CssParser:new(css_bufnr, css_link)
                         css_parser:parse(function(selectors)
-                            state.css.selectors_by_file[file.filename] =
-                                selectors
+                            state.css.selectors_by_file[file.filename] = {
+                                list = selectors,
+                                timestamp = os.time(),
+                            }
                         end)
                     else
                         logger.debug(
@@ -129,7 +146,7 @@ local on_attach = function(params)
                                     local css_path =
                                         vim.api.nvim_buf_get_name(css_bufnr)
                                     table.insert(
-                                        state.html.stylesheets_by_file[html_file],
+                                        state.html.stylesheets_by_file[html_file].list,
                                         {
                                             href = url,
                                             path = css_path,
@@ -144,7 +161,10 @@ local on_attach = function(params)
                                         CssParser:new(css_bufnr, css_link)
                                     css_parser:parse(function(selectors)
                                         state.css.selectors_by_file[css_path] =
-                                            selectors
+                                            {
+                                                list = selectors,
+                                                timestamp = os.time(),
+                                            }
                                     end)
                                 end, 10000)
                             end,
