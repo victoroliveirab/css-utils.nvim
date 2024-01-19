@@ -5,6 +5,8 @@ local logger = require("css-utils.logger")
 local lsp_utils = require("css-utils.lsp.utils")
 local state = require("css-utils.state")
 
+local initial_parsed = {}
+
 local on_attach = function(params)
     local lsp_client_id = params.data.client_id
     local lsp_client = vim.lsp.get_client_by_id(lsp_client_id)
@@ -12,20 +14,19 @@ local on_attach = function(params)
         return
     end
     -- Make sure duplicate handler attaching is not done
-    if state.lsp.attached_handlers_map[lsp_client_id] then
-        return
+    if not state.lsp.attached_handlers_map[lsp_client_id] then
+        state.lsp.attached_handlers_map[lsp_client_id] = true
+        lsp_utils.attach_custom_handler(
+            lsp_client,
+            "textDocument/definition",
+            html_handlers.go_to_definition
+        )
+        lsp_utils.attach_custom_handler(
+            lsp_client,
+            "textDocument/hover",
+            html_handlers.hover
+        )
     end
-    state.lsp.attached_handlers_map[lsp_client_id] = true
-    lsp_utils.attach_custom_handler(
-        lsp_client,
-        "textDocument/definition",
-        html_handlers.go_to_definition
-    )
-    lsp_utils.attach_custom_handler(
-        lsp_client,
-        "textDocument/hover",
-        html_handlers.hover
-    )
 
     local filename = vim.api.nvim_buf_get_name(params.buf)
 
@@ -177,7 +178,10 @@ local on_attach = function(params)
             end
         end)
     end
-    parse_file()
+    if not vim.tbl_contains(initial_parsed, params.buf) then
+        table.insert(initial_parsed, params.buf)
+        parse_file()
+    end
     vim.api.nvim_create_autocmd("BufWritePost", {
         callback = function()
             logger.trace(
