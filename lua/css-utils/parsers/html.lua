@@ -39,6 +39,9 @@ local handle_link_tag = function(tag, html_filename)
         return
     end
 
+    local type = string.sub(href, 1, 4) == "http" and "remote" or "local"
+    href = type == "remote" and href or vim.fn.fnamemodify(href, ":p")
+
     local entry = {
         href = href,
         file = html_filename,
