@@ -1,6 +1,6 @@
 local constants = require("css-utils.constants")
-local Parser = require("css-utils.parsers")
 local logger = require("css-utils.logger")
+local Parser = require("css-utils.parsers")
 
 local href_pattern_dbl_quotes = 'href="[^"]*"'
 local href_pattern_sgl_quotes = "href='[^']*'"

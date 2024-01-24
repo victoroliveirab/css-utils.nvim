@@ -1,3 +1,5 @@
+---@meta
+
 ---@class CmpContext
 ---@field bufnr integer
 ---@field cursor { character: integer, col: integer, line: integer, row: integer }
