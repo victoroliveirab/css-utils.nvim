@@ -54,7 +54,6 @@ Below is the table with all the default values.
 - [ ] Add support to `htmldjango` and `erb`
 - [x] Add support to external/cdn stylesheets
 - [ ] Try to use local node_modules for external stylesheets before downloading
-- [ ] Add ability to persist of parsed css between sessions
 - [ ] Add auto reparse of modified files, including when done outside neovim
 - [ ] Add ability to decide between eager or lazy project scan
 - [ ] Add tests with luassert/plenary
