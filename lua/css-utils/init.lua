@@ -105,6 +105,13 @@ M.setup = function(config)
     logger.debug("initial state:")
     logger.debug(state)
 
+    vim.api.nvim_create_user_command("CssUtilsClearCache", function()
+        -- TODO: clear everything, including remote css downloaded files
+        state.html.stylesheets_by_file = {}
+        state.css.selectors_by_file = {}
+        persistance.write(state.config.cache_file, state)
+    end, {})
+
     register_html_autocmds()
     register_css_autocmds()
 
