@@ -147,6 +147,17 @@ local parse_css_links = function(css_links, html_filename, ignore_cache)
                             filename
                         )
                     )
+                    -- Preload css files to allow hover handler to work
+                    -- NOTE: check the correct filetype
+                    -- NOTE: bufadd does not load the file content to buffer, this is a workaround to force this behavior
+                    local css_bufnr = vim.fn.bufadd(filename)
+                    if css_link.type ~= "inline" then
+                        vim.api.nvim_buf_set_option(
+                            css_bufnr,
+                            "filetype",
+                            "css"
+                        )
+                    end
                 end
             end
         end
