@@ -55,11 +55,11 @@ end
 local HtmlParser = {}
 setmetatable(HtmlParser, { __index = Parser })
 
----@param bufnr integer
+---@param filename string
 ---@return HtmlParser
-function HtmlParser:new(bufnr, config)
-    logger.trace("HtmlParser:new()")
-    local instance = Parser:new(bufnr)
+function HtmlParser:new(filename, config)
+    logger.trace(string.format("HtmlParser:new(%s)", filename))
+    local instance = Parser:new(filename)
     setmetatable(instance, { __index = HtmlParser })
     instance.config = config
     return instance
@@ -67,10 +67,9 @@ end
 
 ---@param cb fun(links: HtmlParsedLink[]): nil
 function HtmlParser:parse(cb)
-    logger.trace("HtmlParser:parse()")
-    local bufnr = self.bufnr
-    local html_filename = vim.api.nvim_buf_get_name(bufnr)
-    logger.trace(vim.api.nvim_buf_get_name(bufnr))
+    local html_filename = self.filename
+    logger.trace(string.format("HtmlParser:parse() of %s", html_filename))
+    local bufnr = vim.fn.bufadd(html_filename)
     local ts_parser = vim.treesitter.get_parser(bufnr, "html")
     local root = ts_parser:parse()[1]:root()
     local query =

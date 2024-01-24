@@ -1,18 +1,18 @@
 local logger = require("css-utils.logger")
 
 ---@class BaseParser
----@field bufnr integer
+---@field filename string
 local Parser = {
-    bufnr = -1,
+    filename = "",
 }
 
 local Parser_mt = { __index = Parser }
 
----@param bufnr integer
-function Parser:new(bufnr)
-    logger.trace(string.format("Parser:new(%d)", bufnr))
+---@param filename string
+function Parser:new(filename)
+    logger.trace(string.format("Parser:new(%s)", filename))
     local instance = {
-        bufnr = bufnr,
+        filename = filename,
     }
     setmetatable(instance, Parser_mt)
     return instance

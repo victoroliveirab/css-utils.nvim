@@ -2,7 +2,8 @@ local Path = require("plenary.path")
 
 local cmp = require("css-utils.cmp")
 local logger = require("css-utils.logger")
-local on_attach = require("css-utils.lsp.on_attach")
+local register_css_autocmds = require("css-utils.autocmds.css")
+local register_html_autocmds = require("css-utils.autocmds.html")
 local state = require("css-utils.state")
 
 local M = {}
@@ -75,9 +76,9 @@ M.setup = function(config)
         remote_stylesheets_path:mkdir()
     end
 
-    vim.api.nvim_create_autocmd("LspAttach", {
-        callback = on_attach,
-    })
+    register_html_autocmds()
+    register_css_autocmds()
+
     cmp.register()
 end
 
