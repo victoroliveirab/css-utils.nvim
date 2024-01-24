@@ -263,9 +263,14 @@ local register = function()
             -- Cached html state is up-to-date
 
             local css_links = state.html.stylesheets_by_file[filename].list
-            logger.info("html up to date csslinks")
-            logger.info(css_links)
-            logger.info("*************")
+            logger.debug(
+                string.format(
+                    "html file %s is up to date, cache_timestamp=%d, last_modified=%d",
+                    filename,
+                    cached_entry_timestamp,
+                    last_modified
+                )
+            )
             parse_css_links(css_links, filename, false)
             on_parsing_complete()
             state.html.stylesheets_by_file[filename].timestamp = os.time()
