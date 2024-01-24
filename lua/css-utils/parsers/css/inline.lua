@@ -40,14 +40,24 @@ function InlineCssParser:parse(cb)
     local bufnr = vim.fn.bufadd(filename)
     logger.trace(string.format("InlineCssParser:parse() of %s", filename))
     local root = self:_get_root(bufnr)
-    local selectors = parse_nodes(root, bufnr)
+    local range_getter = function(node)
+        local row_start, col_start, row_end, col_end = node:range()
+        row_start = row_start + self.range[1]
+        row_end = row_end + self.range[1]
+        return row_start, col_start, row_end, col_end
+    end
+    local selectors = parse_nodes(root, bufnr, range_getter)
     logger.debug(
         string.format("done parsing nodes of inline css at %s", filename)
     )
     logger.debug(selectors)
-    for _, selector in ipairs(selectors) do
-        selector.range[1] = selector.range[1] + self.range[1]
-        selector.range[3] = selector.range[3] + self.range[3]
+    for _, entries in pairs(selectors) do
+        for _, selector in ipairs(entries) do
+            selector.selector_range[1] = selector.selector_range[1]
+                + self.range[1]
+            selector.selector_range[3] = selector.selector_range[3]
+                + self.range[1]
+        end
     end
     logger.debug(string.format("shifted selectors to match actual file lines"))
     logger.debug(selectors)

@@ -2,10 +2,10 @@ local constants = require("css-utils.constants")
 local logger = require("css-utils.logger")
 
 ---@param node TSNode
-local parse_node = function(node, bufnr, selectors)
+local parse_node = function(node, bufnr, range_getter, selectors)
     local type = node:type()
     local prefix = type == "id_name" and "#" or "."
-    local row_start, col_start, row_end, col_end = node:range()
+    local row_start, col_start, row_end, col_end = range_getter(node)
     local node_text = table.concat(
         vim.api.nvim_buf_get_text(
             bufnr,
@@ -80,8 +80,12 @@ end
 
 ---@param root TSNode
 ---@param bufnr integer
----@return CssSelectorInfo[]
-local parse_nodes = function(root, bufnr)
+---@return table<string, CssSelectorInfo[]>
+local parse_nodes = function(root, bufnr, range_getter)
+    range_getter = range_getter
+        or function(node)
+            return node:range()
+        end
     local query = vim.treesitter.query.parse(
         "css",
         constants.treesitter_query_id_and_classes
@@ -89,7 +93,7 @@ local parse_nodes = function(root, bufnr)
     local selectors = {}
     for _, match in query:iter_matches(root, bufnr, 0, 0) do
         for _, node in pairs(match) do
-            parse_node(node, bufnr, selectors)
+            parse_node(node, bufnr, range_getter, selectors)
         end
     end
 
