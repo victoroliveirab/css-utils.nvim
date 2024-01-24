@@ -6,11 +6,17 @@
 
 ---@class ConfigState
 ---@field allow_style_in_body boolean
+---@field cache_file string[]?
 ---@field keymaps ConfigKeymaps
 
+---@alias CssFileType "inline" | "local" | "remote"
+
 ---@class HtmlCssInfo
----@field href string
----@field path string
+---@field href string the link attached to the html
+---@field origin string the origin of the css file
+---@field path string the filepath to the css file (href expanded to fullpath for all css files, except remote)
+---@field range? integer[] the rnage where the css is (only useful for inline css)
+---@field type CssFileType the kind of css file
 
 ---@class CssSelectorInfo
 ---@field preview_text string

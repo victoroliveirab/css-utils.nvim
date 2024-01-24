@@ -7,15 +7,9 @@ local href_pattern_sgl_quotes = "href='[^']*'"
 local rel_stylesheet_dbl_quotes = 'rel="stylesheet"'
 local rel_stylesheet_sgl_quotes = "rel='stylesheet'"
 
----@class HtmlParsedLink
----@field href string
----@field file string
----@field type "inline" | "local" | "remote"
----@field range? integer[]
-
 ---@param tag string
 ---@param html_filename string
----@return HtmlParsedLink?
+---@return HtmlCssInfo?
 local handle_link_tag = function(tag, html_filename)
     logger.trace("handle_link_tag()")
     if
@@ -40,12 +34,12 @@ local handle_link_tag = function(tag, html_filename)
     end
 
     local type = string.sub(href, 1, 4) == "http" and "remote" or "local"
-    href = type == "remote" and href or vim.fn.fnamemodify(href, ":p")
 
     local entry = {
         href = href,
-        file = html_filename,
-        type = string.sub(href, 1, 4) == "http" and "remote" or "local",
+        origin = html_filename,
+        path = type == "remote" and href or vim.fn.fnamemodify(href, ":p"),
+        type = type,
     }
     return entry
 end
@@ -65,7 +59,7 @@ function HtmlParser:new(filename, config)
     return instance
 end
 
----@param cb fun(links: HtmlParsedLink[]): nil
+---@param cb fun(links: HtmlCssInfo[]): nil
 function HtmlParser:parse(cb)
     local html_filename = self.filename
     logger.trace(string.format("HtmlParser:parse() of %s", html_filename))
@@ -74,6 +68,7 @@ function HtmlParser:parse(cb)
     local root = ts_parser:parse()[1]:root()
     local query =
         vim.treesitter.query.parse("html", constants.treesitter_html_tags)
+    ---@type HtmlCssInfo[]
     local stylesheets = {}
     for _, match in query:iter_matches(root, bufnr, 0, 0) do
         for _, node in pairs(match) do
@@ -86,7 +81,8 @@ function HtmlParser:parse(cb)
                 logger.debug(range)
                 table.insert(stylesheets, {
                     href = html_filename,
-                    file = html_filename,
+                    origin = html_filename,
+                    path = html_filename,
                     type = "inline",
                     range = range,
                 })

@@ -1,7 +1,22 @@
+local Job = require("plenary.job")
+
 local ends_with_pattern = function(str, pattern)
     local length = #str
     local _, index = string.find(str, pattern)
     return index == length
+end
+
+local exec_sync_job = function(cmd, args, cwd)
+    local stderr = {}
+    local stdout, code = Job:new({
+        command = cmd,
+        args = args,
+        cwd = cwd,
+        on_stderr = function(_, data)
+            table.insert(stderr, data)
+        end,
+    }):sync()
+    return stdout, code, stderr
 end
 
 ---@param filepath string
@@ -39,6 +54,7 @@ end
 
 return {
     ends_with_pattern = ends_with_pattern,
+    exec_sync_job = exec_sync_job,
     get_relative_path = get_relative_path,
     get_ts_node_text = get_ts_node_text,
     has_whitespace = has_whitespace,
