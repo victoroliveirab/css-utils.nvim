@@ -8,11 +8,6 @@ Have you noticed that when trying to peek a css class or id definition from your
 This is because the [HTML language server](https://github.com/microsoft/vscode-html-languageservice) does not implement a `definition` handler.
 Likewise, the `hover` handler, although implemented, only shows information regarding HTML tags.
 
-## How?
-
-By leveraging [tree-sitter](https://github.com/tree-sitter/tree-sitter) inside neovim, we parse an HTML file, track referenced stylesheets and inline styles, and parse each one of them.
-This creates a map of classes/ids to file locations and provide a similar workflow to what we have developing javascript-based web apps.
-
 ## I'm sold! How do I get started?
 
 ### Installation
@@ -46,13 +41,20 @@ Below is the table with all the default values.
     keymaps = {
         peek_previous = "<C-h>", -- Peek selector's previous definition on hover
         peek_next = "<C-l>", -- Peek selector's next definition on hover
+    },
+    ui = {
+        hover = {
+            fixed_height = false -- Controls whether hover floating window changes height when cycling through options
+            fixed_width = false -- Controls whether hover floating window changes width when cycling through options
+            max_height = 12 -- Controls the max number of rows of the floating window. Larger chunks of text will be scrollable
+            max_width = 72 -- Controls the max number of columns of the floating window. Larger chunks of text will be scrollable
+        }
     }
 }
 ```
 
 ## Roadmap
 - [ ] Add support to `htmldjango` and `erb`
-- [x] Add support to external/cdn stylesheets
 - [ ] Try to use local node_modules for external stylesheets before downloading
 - [ ] Add auto reparse of modified files, including when done outside neovim
 - [ ] Add ability to decide between eager or lazy project scan
