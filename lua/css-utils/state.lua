@@ -4,10 +4,20 @@
 ---@field peek_previous string
 ---@field peek_next string
 
+---@class HoverConfigUi
+---@field fixed_height boolean -- whether all windows have the same height
+---@field fixed_width boolean -- whether all windows have the same width
+---@field max_height number -- window's max height allowed (scroll if more lines are needed)
+---@field max_width number -- window's max width allowed (scroll if more lines are needed)
+
+---@class ConfigUi
+---@field hover HoverConfigUi
+
 ---@class ConfigState
 ---@field allow_style_in_body boolean
 ---@field cache_file string[]?
 ---@field keymaps ConfigKeymaps
+---@field ui ConfigUi
 
 ---@alias CssFileType "inline" | "local" | "remote"
 
@@ -23,9 +33,19 @@
 ---@field range integer[]
 ---@field selector_range integer[]
 
+---@class LspHoverCacheTableEntry
+---@field height integer
+---@field lines string[]
+---@field width integer
+
+---@class LspHoverCacheTable
+---@field entries LspHoverCacheTableEntry[]
+---@field max_height integer
+---@field max_width integer
+
 ---@class LspState
 ---@field attached_handlers_map table<integer, true>
----@field hover_cache table<string, table<string, table>>
+---@field hover_cache table<string, table<string, LspHoverCacheTable>>
 
 ---@class HtmlState
 ---@field stylesheets_by_file table<string, ListWithTimestamp<HtmlCssInfo[]>>
@@ -45,6 +65,14 @@ local State = {
             peek_next = "<C-l>",
             peek_previous = "<C-h>",
         },
+        ui = {
+            hover = {
+                fixed_height = false,
+                fixed_width = false,
+                max_height = 12,
+                max_width = 72,
+            },
+        },
     },
     css = {
         selectors_by_file = {},
@@ -54,6 +82,8 @@ local State = {
     },
     lsp = {
         attached_handlers_map = {},
+        -- TODO: implement config option to control hover_cache size
+        -- Add timestamp to every entry and when full, remove that least recently used (LRU cache)
         hover_cache = {},
     },
 }

@@ -204,52 +204,125 @@ local hover = function(original_handler, err, result, ctx, cfg)
 
         -- OPTIMIZE: if peek_prev and peek_next are disabled, no need to check all buffers, just the first
 
+        logger.trace("html lsp hover")
+
         if not state.lsp.hover_cache[filepath] then
             state.lsp.hover_cache[filepath] = {}
         end
 
+        local max_height = state.config.ui.hover.max_height
+        local max_width = state.config.ui.hover.max_width
         local stylesheets = stylesheets_dict.list
 
         if not state.lsp.hover_cache[filepath][selector] then
+            logger.debug(
+                string.format(
+                    "creating new hover cache entry for filepath=%s selector=%s",
+                    filepath,
+                    selector
+                )
+            )
+            ---@type LspHoverCacheTableEntry[]
             local entries = {}
+            local max_width_needed = 0
+            local max_height_needed = 0
+
+            local get_local_max_width = function(lines)
+                local local_max_width = 0
+                for _, line in ipairs(lines) do
+                    local length = #line
+                    if length > max_width then
+                        return max_width
+                    end
+                    if length > local_max_width then
+                        local_max_width = length
+                    end
+                end
+                return local_max_width
+            end
+
             for _, stylesheet in ipairs(stylesheets) do
                 local stylesheet_name = stylesheet.path
                 local definitions =
                     state.css.selectors_by_file[stylesheet_name].list[selector]
+                logger.debug(
+                    string.format(
+                        "definitions for stylesheet=%s and selector=%s",
+                        stylesheet_name,
+                        selector
+                    )
+                )
+                logger.debug(definitions or "nil")
                 if definitions then
                     local css_bufnr = vim.fn.bufadd(stylesheet_name)
                     for _, entry in ipairs(definitions) do
                         local row_start = entry.selector_range[1]
                         local row_end = entry.selector_range[3] + 1
-                        table.insert(
-                            entries,
-                            vim.api.nvim_buf_get_lines(
-                                css_bufnr,
-                                row_start,
-                                row_end,
-                                false
-                            )
+                        local lines = vim.api.nvim_buf_get_lines(
+                            css_bufnr,
+                            row_start,
+                            row_end,
+                            false
                         )
+                        local width = get_local_max_width(lines)
+                        local height = #lines
+                        table.insert(entries, {
+                            height = height,
+                            lines = lines,
+                            width = width,
+                        })
+
+                        if height > max_height_needed then
+                            max_height_needed = height
+                        end
+                        if width > max_width_needed then
+                            max_width_needed = width
+                        end
                     end
                 end
             end
-            state.lsp.hover_cache[filepath][selector] = entries
+            state.lsp.hover_cache[filepath][selector] = {
+                entries = entries,
+                max_height = max_height_needed > max_height and max_height
+                    or max_height_needed,
+                max_width = max_width_needed > max_width and max_width
+                    or max_width_needed,
+            }
         end
     end
-    local all_entries = state.lsp.hover_cache[filepath][selector]
-    local entry = all_entries[hover_state.hover_index]
+
+    local is_fixed_height = state.config.ui.hover.fixed_height
+    local is_fixed_width = state.config.ui.hover.fixed_width
+    local options = state.lsp.hover_cache[filepath][selector]
+    local number_of_options = #options.entries
+    local current_option = options.entries[hover_state.hover_index]
+
+    if number_of_options == 0 then
+        logger.debug(
+            string.format(
+                "filepath=%s selector=%s currently has no option to show",
+                filepath,
+                selector
+            )
+        )
+        return trigger_original_handler()
+    end
 
     local float_bufnr, float_winnr =
-        vim.lsp.util.open_floating_preview(entry, "css", {
+        vim.lsp.util.open_floating_preview(current_option.lines, "css", {
             border = "solid",
             focusable = true,
             focus_id = ctx.method,
+            height = is_fixed_height and options.max_height
+                or current_option.height,
             title = string.format(
                 "%d/%d",
                 hover_state.hover_index,
-                #all_entries
+                number_of_options
             ),
             title_pos = "right",
+            width = is_fixed_width and options.max_width
+                or current_option.width,
             wrap = false,
         })
 
@@ -260,20 +333,25 @@ local hover = function(original_handler, err, result, ctx, cfg)
         vim.keymap.set("n", peek_next_keymap, function()
             vim.api.nvim_buf_set_option(float_bufnr, "modifiable", true)
             local new_index = hover_state.hover_index + 1
-            if new_index > #all_entries then
+            if new_index > number_of_options then
                 new_index = 1
             end
+            local new_option = options.entries[new_index]
             hover_state.hover_index = new_index
             vim.api.nvim_buf_set_lines(
                 float_bufnr,
                 0,
                 -1,
                 false,
-                state.lsp.hover_cache[filepath][selector][new_index]
+                new_option.lines
             )
             vim.api.nvim_win_set_config(float_winnr, {
-                title = string.format("%d/%d", new_index, #all_entries),
+                height = is_fixed_height and options.max_height
+                    or new_option.height,
+                title = string.format("%d/%d", new_index, number_of_options),
                 title_pos = "right",
+                width = is_fixed_width and options.max_width
+                    or new_option.width,
             })
             vim.api.nvim_buf_set_option(float_bufnr, "modifiable", false)
         end, { buffer = float_bufnr, remap = true })
@@ -284,19 +362,24 @@ local hover = function(original_handler, err, result, ctx, cfg)
             vim.api.nvim_buf_set_option(float_bufnr, "modifiable", true)
             local new_index = hover_state.hover_index - 1
             if new_index < 1 then
-                new_index = #all_entries
+                new_index = number_of_options
             end
+            local new_option = options.entries[new_index]
             hover_state.hover_index = new_index
             vim.api.nvim_buf_set_lines(
                 float_bufnr,
                 0,
                 -1,
                 false,
-                state.lsp.hover_cache[filepath][selector][new_index]
+                new_option.lines
             )
             vim.api.nvim_win_set_config(float_winnr, {
-                title = string.format("%d/%d", new_index, #all_entries),
+                height = is_fixed_height and options.max_height
+                    or new_option.height,
+                title = string.format("%d/%d", new_index, number_of_options),
                 title_pos = "right",
+                width = is_fixed_width and options.max_width
+                    or new_option.width,
             })
             vim.api.nvim_buf_set_option(float_bufnr, "modifiable", false)
         end, { buffer = float_bufnr, remap = true })

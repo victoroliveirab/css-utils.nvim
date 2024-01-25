@@ -28,6 +28,7 @@ local M = {}
 ---@field dev boolean?
 ---@field disabled boolean?
 ---@field keymaps ConfigKeymaps?
+---@field ui ConfigUi?
 
 ---@param config CssUtilsConfig?
 M.setup = function(config)
@@ -67,6 +68,12 @@ M.setup = function(config)
             state.config.keymaps[action] = keymaps[action]
         end
     end
+
+    -- ui
+    local ui_config = config.ui or {}
+    local hover_config = ui_config.hover or {}
+    state.config.ui.hover =
+        vim.tbl_deep_extend("force", state.config.ui.hover, hover_config)
 
     local allow_style_in_body = config.allow_style_in_body or false
     state.config.allow_style_in_body = allow_style_in_body
