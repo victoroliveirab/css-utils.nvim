@@ -8,6 +8,12 @@ local read = function(path)
     logger.trace("persistance.read()")
     local file = Path:new(path)
     if not file:exists() then
+        logger.debug(
+            string.format(
+                "tried to read file %s but it does not exist",
+                file.filename
+            )
+        )
         return
     end
     local reader = function()
@@ -15,6 +21,9 @@ local read = function(path)
     end
     local ok, content = pcall(reader)
     if not ok then
+        logger.warn(
+            string.format("could not json decode contents of %s", file.filename)
+        )
         return
     end
     return content
@@ -27,12 +36,9 @@ local write = function(path, state)
     logger.trace(path)
     local file = Path:new(path)
     if not file:exists() then
-        logger.info("touch file!!!!!!")
         file:touch()
     end
-    logger.info("WRITE!")
     file:write(vim.fn.json_encode(state), "w")
-    logger.info("AFTER WRITE!")
 end
 
 return {
