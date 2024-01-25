@@ -64,9 +64,19 @@ local parse_node = function(node, bufnr, range_getter, selectors)
         end
     end
 
+    -- NOTE: vim.api.nvim_buf_get_lines won't work for unformatted files, but this is too restrictive.
+    -- Try to find a good balance to show the whole selector
+    -- e.g., `.foo.bar` for `bar` class shows only `.bar` but ideally should show `.foo.bar` on quickfixlist
+    local preview_text = vim.api.nvim_buf_get_text(
+        bufnr,
+        row_start,
+        col_start - 1,
+        row_end,
+        col_end,
+        {}
+    )[1]
     local css_selector_info = {
-        -- FIXME: using vim.api.nvim_buf_get_lines won't work for unformatted files. use vim.api.nvim_buf_get_text instead
-        preview_text = "A",
+        preview_text = preview_text,
         range = { row_start, col_start, row_end, col_end },
         selector_range = {
             rs_row_start,
