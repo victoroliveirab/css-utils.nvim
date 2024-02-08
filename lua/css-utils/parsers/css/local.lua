@@ -25,7 +25,10 @@ end
 ---@param cb fun(selectors: table<string, CssSelectorInfo[]>): nil
 function LocalCssParser:parse(cb)
     local filename = self.filename
+    -- NOTE: check the correct filetype
+    -- NOTE: bufadd does not load the file content to buffer, this is a workaround to force this behavior
     local bufnr = vim.fn.bufadd(filename)
+    vim.api.nvim_buf_set_option(bufnr, "filetype", "css")
     logger.trace(string.format("LocalCssParser:parse() of %s", filename))
     local root = self:_get_root(bufnr)
     local selectors = parse_nodes(root, bufnr)
